@@ -11,7 +11,7 @@
  *
  * TWO ROLES:
  *   pastoralist → logs in with phone + password
- *   admin       → logs in with secretKey + password (not in app store)
+ *   admin       → logs in with username + password
  */
 
 const mongoose = require('mongoose');
@@ -23,6 +23,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,         // strips leading/trailing whitespace
+    },
+
+    // Optional username used for admin login
+    username: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
     },
 
     // Phone number = primary identifier for pastoralists

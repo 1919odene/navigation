@@ -92,20 +92,41 @@ router.post('/login', async (req, res) => {
 });
 
 // ── POST /auth/admin ───────────────────────────────────────────
-// Body: { secretKey, password }
-// Admin login — secretKey is stored in .env, not exposed in the app store.
+// Body: { username, password }
+// Supports username + password login and keeps the old secretKey flow as fallback.
 router.post('/admin', async (req, res) => {
   try {
-    const { secretKey, password } = req.body;
+    const { username, password, secretKey } = req.body;
 
-    // First check the secret key matches the one in .env
-    if (secretKey !== process.env.ADMIN_SECRET_KEY)
-      return res.status(401).json({ error: 'Invalid secret key' });
+    if (!password)
+      return res.status(400).json({ error: 'password required' });
 
-    // Find the admin user (there should only be one)
-    const admin = await User.findOne({ role: 'admin' });
+    const providedUsername = (username || '').trim();
+    const providedSecretKey = (secretKey || '').trim();
+    const envUsername = (process.env.ADMIN_USERNAME || '').trim();
+    const envSecretKey = (process.env.ADMIN_SECRET_KEY || '').trim();
+
+    const hasUsernameMatch = providedUsername && envUsername && providedUsername === envUsername;
+    const hasSecretKeyMatch = providedSecretKey && envSecretKey && providedSecretKey === envSecretKey;
+
+    if (!providedUsername && !providedSecretKey)
+      return res.status(400).json({ error: 'username or secretKey required' });
+
+    if (!hasUsernameMatch && !hasSecretKeyMatch)
+      return res.status(401).json({ error: 'Invalid admin credentials' });
+
+    let admin = await User.findOne({ role: 'admin', username: providedUsername || envUsername });
+    if (!admin) {
+      admin = await User.findOne({ role: 'admin' });
+    }
+
     if (!admin)
       return res.status(404).json({ error: 'Admin account not configured' });
+
+    if (!admin.username && envUsername) {
+      admin.username = envUsername;
+      await admin.save();
+    }
 
     const match = await admin.comparePassword(password);
     if (!match)
