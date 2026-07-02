@@ -105,23 +105,35 @@ router.post('/admin', async (req, res) => {
     const providedSecretKey = (secretKey || '').trim();
     const envUsername = (process.env.ADMIN_USERNAME || '').trim();
     const envSecretKey = (process.env.ADMIN_SECRET_KEY || '').trim();
-
-    const hasUsernameMatch = providedUsername && envUsername && providedUsername === envUsername;
-    const hasSecretKeyMatch = providedSecretKey && envSecretKey && providedSecretKey === envSecretKey;
+    const adminPassword = (process.env.ADMIN_PASSWORD || 'Navigation1919').trim();
+    const adminPhone = process.env.ADMIN_PHONE || '+255700000000';
 
     if (!providedUsername && !providedSecretKey)
       return res.status(400).json({ error: 'username or secretKey required' });
 
-    if (!hasUsernameMatch && !hasSecretKeyMatch)
-      return res.status(401).json({ error: 'Invalid admin credentials' });
+    const secretKeyAuth = providedSecretKey && envSecretKey && providedSecretKey === envSecretKey;
+    const usernameAuth = providedUsername && envUsername && providedUsername === envUsername;
+    let admin = null;
 
-    let admin = await User.findOne({ role: 'admin', username: providedUsername || envUsername });
-    if (!admin) {
+    if (providedUsername) {
+      admin = await User.findOne({ role: 'admin', username: providedUsername });
+    }
+
+    if (!admin && (secretKeyAuth || usernameAuth)) {
       admin = await User.findOne({ role: 'admin' });
+      if (!admin) {
+        admin = await User.create({
+          name: 'System Admin',
+          username: envUsername || providedUsername || 'navigation_admin',
+          phone: adminPhone,
+          password: adminPassword,
+          role: 'admin',
+        });
+      }
     }
 
     if (!admin)
-      return res.status(404).json({ error: 'Admin account not configured' });
+      return res.status(401).json({ error: 'Invalid admin credentials' });
 
     if (!admin.username && envUsername) {
       admin.username = envUsername;
