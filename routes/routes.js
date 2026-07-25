@@ -21,7 +21,7 @@ const { getIO } = require('../sockets/socketHandler');
 const router = express.Router();
 
 // GET /routes — public, called when map loads
-router.get('/', protect, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const routes = await Route.find();
     // Wrap in GeoJSON FeatureCollection for Leaflet

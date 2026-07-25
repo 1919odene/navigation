@@ -39,7 +39,7 @@ const router = express.Router();
 // ── GET /zones ────────────────────────────────────────────────
 // Public — called when the map loads to draw all zone polygons.
 // Also called by the ESP32 on boot to download fence coordinates.
-router.get('/', protect, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const zones = await Zone.find(); // get all zones from MongoDB
 
